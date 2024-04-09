@@ -1,13 +1,17 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using gs.shared;
+
+string envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
+Console.WriteLine(envPath);
+Dotenv.Load(envPath);
 
 string host = Dns.GetHostName();
 IPHostEntry ipHostEntry = Dns.GetHostEntry(host);
-
-// foreach (var ad in ipHostEntry.AddressList)
-//     System.Console.WriteLine(ad);
 IPAddress mezelf = ipHostEntry.AddressList[0];
-IPEndPoint ipEndPoint = new(mezelf, 3080);
+
+int port = int.Parse(Dotenv.Get("PORT"));
+IPEndPoint ipEndPoint = new(mezelf, port);
 
 try
 {
