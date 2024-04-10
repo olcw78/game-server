@@ -4,17 +4,32 @@ namespace gs.shared;
 
 public static class Dotenv
 {
-    static IReadOnlyDictionary<string?, string?>? Cache;
+    static readonly Dictionary<string, string?> Cache = new();
     private static readonly char[] separator = ['='];
 
-    public static string? Get(string key) => Cache.TryGetValue(key, out string v) ? v : null;
+    public static string? Get(string key)
+    {
+        if (Cache == null) return "";
+        if (Cache.TryGetValue(key, out string? v))
+            return v;
+        return null;
+    }
 
-    public static IEnumerable<string?> Gets(params string[] keys) => keys.Select(k => Get(k));
+    public static IEnumerable<string?> Gets(params string[] keys)
+        => keys.Select(Get);
+
+    public static int? GetI(string key)
+    {
+        if (!int.TryParse(Get(key), out int val))
+            return null;
+
+        return val;
+    }
 
     public static void Load(string path)
     {
         if (string.IsNullOrEmpty(path))
-            throw new ArgumentNullException(nameof(path) + "is empty");
+            throw new ArgumentNullException(nameof(path));
 
         if (!File.Exists(path))
             throw new FileNotFoundException(nameof(path));
@@ -29,7 +44,17 @@ public static class Dotenv
             Environment.SetEnvironmentVariable(tokens[0], tokens[1]);
         }
 
-        Cache = Environment.GetEnvironmentVariables().Cast<DictionaryEntry>()
-            .ToDictionary(e => e.Key.ToString(), e => e.Value?.ToString() ?? "");
+        foreach (DictionaryEntry e in Environment.GetEnvironmentVariables())
+        {
+            string? k = e.Key.ToString();
+            if (string.IsNullOrEmpty(k))
+                continue;
+
+            string? v = e.Value?.ToString();
+            if (string.IsNullOrEmpty(v))
+                continue;
+
+            Cache.Add(k, v);
+        }
     }
 }
