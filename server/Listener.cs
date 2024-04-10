@@ -1,14 +1,18 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace gs.server;
 
 internal sealed class Listener
 {
     readonly Socket _listener;
+    event Action<Socket?> OnAccepted;
 
-    public Listener(int port)
+    public Listener(int port, Action<Socket?> onAccepted)
     {
+        OnAccepted = onAccepted;
+
         string host = Dns.GetHostName();
         IPHostEntry ipHostEntry = Dns.GetHostEntry(host);
         IPAddress mezelf = ipHostEntry.AddressList[0];
@@ -18,37 +22,42 @@ internal sealed class Listener
 
         _listener.Bind(ipEndPoint);
         _listener.Listen(backlog: 10);
+
+        SocketAsyncEventArgs args = new();
+        args.Completed += this.OnAcceptCompleted;
+
+        RegisterAccept(args);
     }
 
-    public async Task ListenAsync()
+    public void RegisterAccept(SocketAsyncEventArgs args)
     {
-        try
+        args.AcceptSocket = null;
+
+        bool isPending = _listener.AcceptAsync(args);
+        if (!isPending)
         {
-            do
-            {
-                Console.WriteLine($"Listening... at 3080");
-                var accepted = await _listener.AcceptAsync();
-
-                byte[] buf = new byte[1024];
-                int recvBytes = await accepted.ReceiveAsync(buf);
-                if (recvBytes > 0)
-                {
-                    string msg = System.Text.Encoding.UTF8.GetString(buf, 0, recvBytes);
-                    Console.WriteLine($"Received: {msg}");
-
-                    byte[] sendBytes = System.Text.Encoding.UTF8.GetBytes(
-                        "Jij hebt wel op de ober geconnecteerd."
-                    );
-                    await accepted.SendAsync(sendBytes);
-                }
-
-                accepted.Shutdown(SocketShutdown.Both);
-                accepted.Close(100);
-            } while (true);
+            // completed after a line.
+            this.OnAcceptCompleted(null, args);
+            return;
         }
-        catch (Exception ex)
+    }
+
+    void OnAcceptCompleted(object? sender, SocketAsyncEventArgs args)
+    {
+        if (args.SocketError == SocketError.Success)
         {
-            System.Console.WriteLine(ex.Message);
+            OnAccepted?.Invoke(args.AcceptSocket);
         }
+        else
+        {
+            Console.WriteLine(args.SocketError);
+        }
+
+        RegisterAccept(args);
+    }
+
+    public Socket Accept()
+    {
+        return _listener.Accept();
     }
 }
