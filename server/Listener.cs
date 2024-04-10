@@ -1,12 +1,11 @@
 using System.Net;
 using System.Net.Sockets;
-using gs.shared;
 
 namespace gs.server;
 
 internal sealed class Listener
 {
-    Socket _listener;
+    readonly Socket _listener;
 
     public Listener(int port)
     {
@@ -15,7 +14,7 @@ internal sealed class Listener
         IPAddress mezelf = ipHostEntry.AddressList[0];
         IPEndPoint ipEndPoint = new(mezelf, port);
 
-        _listener = new(ipEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+        _listener = new Socket(ipEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
         _listener.Bind(ipEndPoint);
         _listener.Listen(backlog: 10);
