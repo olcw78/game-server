@@ -3,16 +3,21 @@ using System.Text;
 using gs.server;
 using gs.shared;
 
+ManualResetEventSlim preventExitEvent = new();
+
 string envPath = Path.Join(Directory.GetCurrentDirectory(), ".env");
-Console.WriteLine(envPath);
 Dotenv.Load(envPath);
 
+var listener = new Listener(OnAccepted);
 int port = Dotenv.GetI("PORT") ?? 3000;
+listener.Listen(port,
+  () => {
+    //
+    Console.WriteLine($"Server Listening at ${port}");
+  }
+);
 
-Listener listener = new(port, OnAccepted);
-
-Console.WriteLine($"Server Listening at ${port}");
-Console.ReadLine();
+preventExitEvent.Wait();
 
 void OnAccepted(Socket? socket) {
   if (socket == null)

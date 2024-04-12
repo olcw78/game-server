@@ -9,7 +9,6 @@ Dotenv.Load(envPath);
 
 int port = Dotenv.GetI("PORT") ?? 3000;
 
-Socket server;
 string host = Dns.GetHostName();
 IPHostEntry ipHostEntry = Dns.GetHostEntry(host);
 IPAddress localhost = ipHostEntry.AddressList[0];
@@ -17,7 +16,7 @@ IPEndPoint ipEndPoint = new IPEndPoint(localhost, port);
 
 while (true) {
   try {
-    server = new Socket(ipEndPoint.AddressFamily, SocketType.Stream,
+    Socket server = new Socket(ipEndPoint.AddressFamily, SocketType.Stream,
       ProtocolType.Tcp);
     await server.ConnectAsync(ipEndPoint);
     Console.WriteLine($"connected {server.RemoteEndPoint}");
