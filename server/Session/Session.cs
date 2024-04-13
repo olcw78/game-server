@@ -39,9 +39,11 @@ public abstract class Session : ISession {
   private readonly SocketAsyncEventArgs _sendArgs;
   private readonly SocketAsyncEventArgs _recvArgs;
 
-  private bool _sendPending;
   private readonly object _sendLock = new();
   private readonly Queue<byte[]> _sendQueue = new();
+
+  private readonly IList<ArraySegment<byte>> _sendPendingList
+    = new List<ArraySegment<byte>>();
 
   #endregion field
 
@@ -100,22 +102,25 @@ public abstract class Session : ISession {
   public void Send(byte[] sendBuf) {
     // 보내는 부분이 재사용됨 -> critical section.
     lock (_sendLock) {
-      // _conn.Send(sendBuf);
-
       _sendQueue.Enqueue(sendBuf);
 
-      if (!_sendPending) StartSend();
+      if (_sendPendingList.Count == 0)
+        StartSend();
     }
   }
 
   public void StartSend() {
-    _sendPending = true;
+    while (_sendQueue.Count > 0) {
+      byte[] data = _sendQueue.Dequeue();
+      var dataSeg = new ArraySegment<byte>(data, 0, data.Length);
+      _sendPendingList.Add(dataSeg);
+    }
 
-    byte[] data = _sendQueue.Dequeue();
-    _sendArgs.SetBuffer(data, 0, data.Length);
+    _sendArgs.BufferList = _sendPendingList;
 
     bool isPending = _conn.SendAsync(_sendArgs);
-    if (!isPending) OnSendComplete(null, _sendArgs);
+    if (!isPending)
+      OnSendComplete(null, _sendArgs);
   }
 
   public void OnSendComplete(object? sender, SocketAsyncEventArgs args) {
@@ -123,10 +128,13 @@ public abstract class Session : ISession {
       if (args.BytesTransferred > 0 &&
           args.SocketError == SocketError.Success)
         try {
+          _sendArgs.BufferList = null;
+          _sendPendingList.Clear();
+
+          Console.WriteLine($"Transferred bytes: {_sendArgs.BytesTransferred}");
+
           if (_sendQueue.Count > 0)
             StartSend();
-          else
-            _sendPending = false;
 
           OnSend(args.BytesTransferred);
         }

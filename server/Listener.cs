@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace gs.server;
+namespace server;
 
 internal sealed class Listener {
   private Socket? _listenerSocket;
