@@ -1,7 +1,8 @@
 using System.Net;
 using System.Text;
+using server.Session;
 
-namespace server.Session;
+namespace Contents;
 
 public class GameSession : Session {
   public override void OnConnect(EndPoint endPoint) {

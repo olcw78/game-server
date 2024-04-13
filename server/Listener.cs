@@ -4,7 +4,7 @@ using server.Session;
 
 namespace server;
 
-internal sealed class Listener {
+public sealed class Listener {
   private readonly IPEndPoint _ipEndPoint;
   private readonly SocketAsyncEventArgs _listenerArgs;
   private readonly Socket? _listenerSocket;
@@ -29,6 +29,9 @@ internal sealed class Listener {
     _listenerSocket.Listen(backlog: 10);
 
     StartAccept(_listenerArgs);
+
+    Console.WriteLine(
+      $"Server Listening at {ipEndPoint.Address}:{ipEndPoint.Port}");
   }
 
   private event Func<ISession> SessionFactory;
