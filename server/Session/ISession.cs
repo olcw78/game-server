@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Sockets;
 
 namespace server.Session;
@@ -11,4 +12,10 @@ public interface ISession {
 
   void StartSend();
   void OnSendComplete(object? sender, SocketAsyncEventArgs args);
+
+  void OnConnect(EndPoint endPoint);
+  void OnDisconnect(EndPoint endPoint);
+  void OnRecv(ArraySegment<byte> data);
+  void OnSend(int byteTransferred);
+  void Start(Socket conn);
 }

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Sockets;
 
 namespace server.Session;
@@ -16,10 +17,10 @@ public abstract class Session : ISession {
     _sendArgs.Completed += OnSendComplete;
   }
 
-  protected abstract void OnConnect(Socket conn);
-  protected abstract void OnDisconnect();
-  protected abstract void OnRecv(ArraySegment<byte> recvBuf);
-  protected abstract void OnSend(int byteTransferred);
+  public abstract void OnConnect(EndPoint endPoint);
+  public abstract void OnDisconnect(EndPoint endPoint);
+  public abstract void OnRecv(ArraySegment<byte> data);
+  public abstract void OnSend(int byteTransferred);
 
   #region constant
 
@@ -53,7 +54,6 @@ public abstract class Session : ISession {
     _conn = conn;
 
     StartRecv(_recvArgs);
-    // this.StartSend(_sendArgs);
   }
 
   public void Disconnect() {

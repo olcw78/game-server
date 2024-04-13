@@ -1,25 +1,32 @@
-using System.Net.Sockets;
+using System.Net;
 using System.Text;
 
 namespace server.Session;
 
 public class GameSession : Session {
-  protected override void OnConnect(Socket conn) {
-    Console.WriteLine($"{nameof(OnConnect)}");
+  public override void OnConnect(EndPoint endPoint) {
+    Console.WriteLine($"{nameof(OnConnect)}> connected to {endPoint}");
+
+    byte[] sendBuf = Encoding.UTF8.GetBytes("Welcome to MMORPG server!");
+    Send(sendBuf);
+
+    Thread.Sleep(1000);
+
+    Disconnect();
   }
 
-  protected override void OnDisconnect() {
-    Console.WriteLine($"{nameof(OnDisconnect)}");
+  public override void OnDisconnect(EndPoint endPoint) {
+    Console.WriteLine($"{nameof(OnDisconnect)}> disconnected from {endPoint}");
   }
 
-  protected override void OnRecv(ArraySegment<byte> recvBuf) {
+  public override void OnRecv(ArraySegment<byte> recvBuf) {
     Console.WriteLine($"{nameof(OnRecv)}");
 
     string content = Encoding.UTF8.GetString(recvBuf);
     Console.WriteLine($"[From Client] : {content}");
   }
 
-  protected override void OnSend(int byteTransferred) {
+  public override void OnSend(int byteTransferred) {
     Console.WriteLine($"{nameof(OnSend)} byte transferred: {byteTransferred}");
   }
 }

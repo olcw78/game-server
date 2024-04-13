@@ -1,5 +1,4 @@
-﻿using System.Net.Sockets;
-using System.Text;
+﻿using System.Net;
 using server;
 using server.Session;
 using Shared;
@@ -9,32 +8,14 @@ ManualResetEventSlim preventExitEvent = new();
 string envPath = Path.Join(Directory.GetCurrentDirectory(), ".env");
 Dotenv.Load(envPath);
 
-var listener = new Listener(OnAccepted);
+
+string host = Dns.GetHostName();
+IPHostEntry ipHostEntry = Dns.GetHostEntry(host);
+
 int port = Dotenv.GetI("PORT") ?? 3000;
-listener.Listen(port,
-  () => {
-    //
-    Console.WriteLine($"Server Listening at ${port}");
-  }
-);
+var ipEndPoint = new IPEndPoint(ipHostEntry.AddressList[0], port);
+
+var listener = new Listener(ipEndPoint, () => new GameSession());
 
 preventExitEvent.Wait();
 return;
-
-void OnAccepted(Socket? acceptedSocket) {
-  if (acceptedSocket == null)
-    return;
-
-  try {
-    GameSession gameSession = new();
-    gameSession.Start(acceptedSocket);
-
-    byte[] sendBuf = Encoding.UTF8.GetBytes("Welcome to MMORPG server!");
-    gameSession.Send(sendBuf);
-  }
-  catch (Exception ex) {
-    Console.WriteLine(ex.Message);
-  }
-
-  Thread.Sleep(1000);
-}
