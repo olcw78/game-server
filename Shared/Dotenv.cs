@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace gs.shared;
+namespace Shared;
 
 public static class Dotenv {
   private static readonly Dictionary<string, string?> LoadedEnvItemDict = new();

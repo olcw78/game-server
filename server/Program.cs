@@ -1,7 +1,8 @@
 ﻿using System.Net.Sockets;
 using System.Text;
-using gs.server;
-using gs.shared;
+using server;
+using server.Session;
+using Shared;
 
 ManualResetEventSlim preventExitEvent = new();
 
@@ -18,30 +19,22 @@ listener.Listen(port,
 );
 
 preventExitEvent.Wait();
+return;
 
-void OnAccepted(Socket? socket) {
-  if (socket == null)
+void OnAccepted(Socket? acceptedSocket) {
+  if (acceptedSocket == null)
     return;
 
-  byte[] buf = new byte[1024];
-
   try {
-    int recvBytes = socket.Receive(buf);
-    System.Console.WriteLine("recvBytes: " + recvBytes);
+    GameSession gameSession = new();
+    gameSession.Start(acceptedSocket);
 
-    if (recvBytes > 0) {
-      string msg = Encoding.UTF8.GetString(buf, 0, recvBytes);
-      Console.WriteLine($"Received: {msg}");
-
-      buf = Encoding.UTF8.GetBytes("You are connected");
-      int sendByte = socket.Send(buf);
-    }
+    byte[] sendBuf = Encoding.UTF8.GetBytes("Welcome to MMORPG server!");
+    gameSession.Send(sendBuf);
   }
   catch (Exception ex) {
     Console.WriteLine(ex.Message);
   }
-  finally {
-    socket.Shutdown(SocketShutdown.Both);
-    socket.Close(100);
-  }
+
+  Thread.Sleep(1000);
 }
