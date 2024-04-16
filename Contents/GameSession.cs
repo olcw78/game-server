@@ -21,13 +21,11 @@ public class GameSession : Session {
   }
 
   public override void OnRecv(ArraySegment<byte> recvBuf) {
-    Console.WriteLine($"{nameof(OnRecv)}");
-
     string content = Encoding.UTF8.GetString(recvBuf);
-    Console.WriteLine($"[From Client] : {content}");
+    Console.WriteLine($"{nameof(OnRecv)}> {content}");
   }
 
   public override void OnSend(int byteTransferred) {
-    Console.WriteLine($"{nameof(OnSend)} byte transferred: {byteTransferred}");
+    Console.WriteLine($"{nameof(OnSend)}> byte transferred: {byteTransferred}");
   }
 }

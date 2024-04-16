@@ -40,6 +40,8 @@ public class Connector {
       ISession session = SessionFactory();
       session.Start(args.ConnectSocket);
       session.OnConnect(args.RemoteEndPoint);
+      
+      // StartConnect(args);
     }
     else {
       Console.WriteLine(

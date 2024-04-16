@@ -14,11 +14,3 @@ IPAddress localhost = ipHostEntry.AddressList[0];
 IPEndPoint ipEndPoint = new IPEndPoint(localhost, port);
 
 var connector = new Connector(ipEndPoint, () => new GameSession());
-
-try {
-}
-catch (Exception ex) {
-  Console.WriteLine(ex.Message);
-}
-
-Thread.Sleep(3000);

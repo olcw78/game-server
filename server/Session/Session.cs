@@ -60,6 +60,8 @@ public abstract class Session : ISession {
     if (SESSION_DISCONNECTED ==
         Interlocked.Exchange(ref _disconnected, SESSION_DISCONNECTED))
       return;
+    
+    OnDisconnect(_conn.RemoteEndPoint);
 
     _conn.Shutdown(SocketShutdown.Both);
     _conn.Close();
@@ -130,8 +132,6 @@ public abstract class Session : ISession {
         try {
           _sendArgs.BufferList = null;
           _sendPendingList.Clear();
-
-          Console.WriteLine($"Transferred bytes: {_sendArgs.BytesTransferred}");
 
           if (_sendQueue.Count > 0)
             StartSend();
