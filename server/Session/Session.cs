@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using server.Buffer;
 
 namespace server.Session;
 
@@ -10,16 +11,16 @@ public abstract class Session : ISession {
     _recvArgs.Completed += OnRecvComplete;
     // recv 는 받을 버퍼의 사이즈를 연락 이전까지 어느정도 예측 가능하지만,
     // send 는 알 수 없으므로 미리 버퍼 설정 x
-    _recvArgs.SetBuffer(new byte[RECV_BUF_SIZE], 0, RECV_BUF_SIZE);
+    _recvBuf = new RecvBuffer(RECV_BUF_SIZE);
 
     _sendArgs = new SocketAsyncEventArgs();
     _sendArgs.Completed -= OnSendComplete;
     _sendArgs.Completed += OnSendComplete;
   }
 
-  public abstract void OnConnect(EndPoint endPoint);
-  public abstract void OnDisconnect(EndPoint endPoint);
-  public abstract void OnRecv(ArraySegment<byte> data);
+  public abstract void OnConnect(EndPoint? endPoint);
+  public abstract void OnDisconnect(EndPoint? endPoint);
+  public abstract int OnRecv(ArraySegment<byte> data);
   public abstract void OnSend(int byteTransferred);
 
   #region constant
@@ -39,6 +40,8 @@ public abstract class Session : ISession {
 
   private readonly SocketAsyncEventArgs _sendArgs;
   private readonly SocketAsyncEventArgs _recvArgs;
+  
+  private readonly RecvBuffer _recvBuf;
 
   private readonly object _sendLock = new();
   private readonly Queue<byte[]> _sendQueue = new();
@@ -50,7 +53,9 @@ public abstract class Session : ISession {
 
   #region behaviour
 
-  public void Start(Socket conn) {
+  public void Start(Socket? conn) {
+    ArgumentNullException.ThrowIfNull(conn);
+
     _conn = conn;
 
     StartRecv(_recvArgs);
@@ -72,7 +77,12 @@ public abstract class Session : ISession {
   #region Recv
 
   public void StartRecv(SocketAsyncEventArgs args) {
-    args.AcceptSocket = null;
+    // args.AcceptSocket = null;
+    
+    _recvBuf.Clean();
+    
+    var seg = _recvBuf.WriteSeg;
+    _recvArgs.SetBuffer(seg.Array, seg.Offset, seg.Count);
 
     bool isPending = _conn.ReceiveAsync(args);
     if (!isPending) OnRecvComplete(null, args);
@@ -82,11 +92,28 @@ public abstract class Session : ISession {
     if (args.BytesTransferred > 0 &&
         args.SocketError == SocketError.Success)
       try {
+
+        if (!_recvBuf.OnWrite(args.BytesTransferred)) {
+          Disconnect();
+          return;
+        }
+        
+
+
         if (args.Buffer == null) return;
 
-        var recvArgsSlice = new ArraySegment<byte>(
-          args.Buffer, args.Offset, args.Buffer.Length);
-        OnRecv(recvArgsSlice);
+        // var recvArgsSlice = new ArraySegment<byte>(
+        //   args.Buffer, args.Offset, args.Buffer.Length);
+        int procLen = OnRecv(_recvBuf.ReadSeg);
+        if (procLen < 0 || _recvBuf.DataSize < procLen) {
+          Disconnect();
+          return;
+        }
+        
+        if (!_recvBuf.OnRead(procLen)) {
+          Disconnect();
+          return;
+        }
 
         StartRecv(args);
       }
@@ -106,8 +133,9 @@ public abstract class Session : ISession {
     lock (_sendLock) {
       _sendQueue.Enqueue(sendBuf);
 
-      if (_sendPendingList.Count == 0)
+      if (_sendPendingList.Count == 0) {
         StartSend();
+      }
     }
   }
 

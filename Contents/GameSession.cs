@@ -5,7 +5,7 @@ using server.Session;
 namespace Contents;
 
 public class GameSession : Session {
-  public override void OnConnect(EndPoint endPoint) {
+  public override void OnConnect(EndPoint? endPoint) {
     Console.WriteLine($"{nameof(OnConnect)}> connected to {endPoint}");
 
     byte[] sendBuf = Encoding.UTF8.GetBytes("Welcome to MMORPG server!");
@@ -16,13 +16,15 @@ public class GameSession : Session {
     Disconnect();
   }
 
-  public override void OnDisconnect(EndPoint endPoint) {
+  public override void OnDisconnect(EndPoint? endPoint) {
     Console.WriteLine($"{nameof(OnDisconnect)}> disconnected from {endPoint}");
   }
 
-  public override void OnRecv(ArraySegment<byte> recvBuf) {
-    string content = Encoding.UTF8.GetString(recvBuf);
+  public override int OnRecv(ArraySegment<byte> data) {
+    string content = Encoding.UTF8.GetString(data);
     Console.WriteLine($"{nameof(OnRecv)}> {content}");
+    
+    return data.Count;
   }
 
   public override void OnSend(int byteTransferred) {
